@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: sentinel-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: sentinel_assets
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123 # MUDA PARA PROD!
+    ports:
+      - "5433:5432"  # 5433 para evitar conflito com PostgreSQL no host
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./src/SentinelAssetsAPI
+      dockerfile: Dockerfile
+    container_name: sentinel-api
+    restart: always
+    ports:
+      - "5000:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=sentinel_assets;Username=postgres;Password=postgres123"
+      Jwt__Key: "super-secret-key-min-32-chars-long!!!"
+      Jwt__Issuer: "SentinelAPI"
+      Jwt__Audience: "SentinelAPI"
+      AWS__Region: "us-east-1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    driver: local

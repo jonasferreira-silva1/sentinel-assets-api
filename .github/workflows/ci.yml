@@ -1,0 +1,33 @@
+name: CI - Build & Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build & Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 7
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "7.0.x"
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+
+      - name: Restaurar dependências
+        run: dotnet restore src/SentinelAssetsAPI/SentinelAssetsAPI.csproj
+
+      - name: Build
+        run: dotnet build src/SentinelAssetsAPI/SentinelAssetsAPI.csproj --no-restore --configuration Release
